@@ -13,24 +13,66 @@ namespace mkv::generation {
             : model_(model), rng_(seed) {}
 
         [[nodiscard]] model::TokenID sample_next(const model::State& state) {
-            const auto* counts = model_.get_transitions(state);
-            if (!counts) return model::Vocabulary::INVALID;
-
-            uint32_t total = 0;
-            for (const auto& [_, count] : *counts) {
-                total += count;
+            model::State current_context = state;
+            if (current_context.size() > model_.order()) {
+                current_context.erase(current_context.begin(), current_context.end() - model_.order());
             }
 
-            if (total == 0) return model::Vocabulary::INVALID;
+            while (true) {
+                const auto* counts = model_.get_transitions(current_context);
+                if (counts && !counts->empty()) {
+                    uint32_t total = 0;
+                    for (const auto& [_, count] : *counts) {
+                        total += count;
+                    }
 
-            std::uniform_int_distribution<uint32_t> dist(0, total - 1);
-            uint32_t r = dist(rng_);
+                    std::uniform_int_distribution<uint32_t> dist(0, total - 1);
+                    uint32_t r = dist(rng_);
 
-            for (const auto& [tok, count] : *counts) {
-                if (r < count) return tok;
-                r -= count;
+                    for (const auto& [tok, count] : *counts) {
+                        if (r < count) return tok;
+                        r -= count;
+                    }
+                }
+                if (current_context.empty()) break;
+                current_context.erase(current_context.begin()); // Step back! (Backoff)
             }
             return model::Vocabulary::INVALID;
+        }
+
+        [[nodiscard]] std::vector<std::pair<model::TokenID, double>> get_top_continuations(const model::State& state, size_t top_k = 5) const {
+            model::State current_context = state;
+            if (current_context.size() > model_.order()) {
+                current_context.erase(current_context.begin(), current_context.end() - model_.order());
+            }
+
+            const model::NextTokenCounts* counts = nullptr;
+            
+            while (true) {
+                counts = model_.get_transitions(current_context);
+                if (counts && !counts->empty()) break;
+                if (current_context.empty()) break;
+                current_context.erase(current_context.begin());
+            }
+            
+            if (!counts || counts->empty()) return {};
+
+            uint32_t total = 0;
+            for (const auto& [_, count] : *counts) total += count;
+
+            std::vector<std::pair<model::TokenID, double>> probs;
+            for (const auto& [tok, count] : *counts) {
+                probs.emplace_back(tok, static_cast<double>(count) / total);
+            }
+
+            std::sort(probs.begin(), probs.end(), [](const auto& a, const auto& b) {
+                return a.second > b.second;
+            });
+
+            if (probs.size() > top_k) {
+                probs.resize(top_k);
+            }
+            return probs;
         }
 
     private:

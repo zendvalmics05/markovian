@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <iomanip>
 
 #include "tokenizers/WordTokenizer.hpp"
 #include "tokenizers/CharTokenizer.hpp"
@@ -23,6 +24,7 @@ int main(int argc, char* argv[]) {
     int length = 50;
     std::string seed_str;
     std::string tokenizer_type = "word";
+    bool inspect_mode = false;
 
     if (argc == 1) {
         std::cout << "--- Interactive Mode (No CLI arguments detected) ---\n";
@@ -44,6 +46,12 @@ int main(int argc, char* argv[]) {
         std::cout << "Enter tokenizer (word | char) [default word]: ";
         std::getline(std::cin, input);
         if (!input.empty()) tokenizer_type = input;
+
+        std::cout << "Enable inspect mode? (y/N): ";
+        std::getline(std::cin, input);
+        if (!input.empty() && (input == "y" || input == "Y" || input == "yes")) {
+            inspect_mode = true;
+        }
     } else {
         for (int i = 1; i < argc; ++i) {
             std::string arg = argv[i];
@@ -52,6 +60,7 @@ int main(int argc, char* argv[]) {
             else if (arg == "--length" && i + 1 < argc) length = std::stoi(argv[++i]);
             else if (arg == "--seed" && i + 1 < argc) seed_str = argv[++i];
             else if (arg == "--tokenizer" && i + 1 < argc) tokenizer_type = argv[++i];
+            else if (arg == "--inspect") inspect_mode = true;
             else {
                 print_usage();
                 return 1;
@@ -99,24 +108,46 @@ int main(int argc, char* argv[]) {
 
     if (!seed_str.empty()) {
         auto seed_tokens = tokenizer->tokenize(seed_str);
-        if (seed_tokens.size() > n) {
-            seed_tokens.erase(seed_tokens.begin(), seed_tokens.end() - n);
-        }
+        std::vector<model::TokenID> seed_ids;
         for (const auto& w : seed_tokens) {
             auto id = vocab.getId(w);
             if (id == model::Vocabulary::INVALID) {
                 std::cerr << "[Warning] Seed token not in vocabulary: " << w << "\n";
+            } else {
+                seed_ids.push_back(id);
+                generated_text += w + (tokenizer_type == "word" ? " " : "");
             }
-            state.push_back(id);
-            generated_text += w + (tokenizer_type == "word" ? " " : "");
         }
-        while (state.size() < n) {
-            state.insert(state.begin(), model::Vocabulary::STARTID);
+        
+        state = model.find_state_by_suffix(seed_ids);
+        if (state.empty()) {
+             std::cerr << "\n[Error] The provided seed sequence was never observed in the text corpus.\n";
+             return 1;
         }
     } else {
         state = model::State(n, model::Vocabulary::STARTID);
     }
 
+    if (inspect_mode) {
+        if (seed_str.empty()) {
+            std::cerr << "Error: Inspect mode requires a --seed starting context.\n";
+            return 1;
+        }
+        std::cout << "\n[Inspect Mode]\nContext: \"" << seed_str << "\"\n";
+        std::cout << "Top continuations:\n";
+        
+        auto top_k = sampler.get_top_continuations(state, 5);
+        if (top_k.empty()) {
+            std::cout << "- [No known continuations / Context completely unseen]\n";
+        } else {
+            for (const auto& [id, prob] : top_k) {
+                std::cout << "- " << vocab.getToken(id) << " (" << std::fixed << std::setprecision(4) << prob << ")\n";
+            }
+        }
+        return 0; // Terminate!
+    }
+
+    // Classic Generation Mode
     for (int i = 0; i < length; ++i) {
         auto id = sampler.sample_next(state);
         if (id == model::Vocabulary::INVALID || id == model::Vocabulary::ENDID) {

@@ -1,271 +1,47 @@
-# Markov Language Models in C++
+# Markovian
 
-A modular, experimental implementation of **Markov (n-gram) language models** written in modern C++, designed as a learning laboratory for classical language modeling.
+A modular, experimental implementation of n-gram language models written organically in modern C++20. 
 
-This project explores how **representation choices** (tokenization, context size, smoothing) shape language generation—without using neural networks or large external libraries.
-
----
-
-## Motivation
-
-Before transformers, language modeling was dominated by **n-gram Markov models**.
-They are simple, interpretable, and deeply instructive.
-
-This project was built to answer questions like:
-
-* How does changing the context window (`n`) affect fluency?
-* Why does tokenization matter more than the algorithm itself?
-* How do probabilistic models fail—and how can we soften those failures?
-* What does “generation” really mean in a statistical model?
-
-Rather than chasing state-of-the-art performance, this repository focuses on **clarity, control, and insight**.
-
----
-
-## What This Project Is (and Is Not)
-
-### ✔ This project **is**
-
-* A clean implementation of n-gram language models
-* A tokenizer-agnostic experimentation framework
-* A demonstration of classical NLP ideas
-* A performance-aware C++ codebase
-* A tool for introspecting probabilistic text models
-
-### ✘ This project is **not**
-
-* A neural language model
-* A chatbot meant for real-world deployment
-* A replacement for modern LLMs
-* A library optimized for massive datasets
-
----
-
-## Core Concepts
-
-### Markov Assumption
-
-The model assumes:
-
-> The probability of the next token depends only on the previous `n` tokens.
-
-Formally:
-
-```
-P(t_{n+1} | t_1, …, t_n)
-```
-
-This assumption enables:
-
-* tractable training
-* exact probability tables
-* full transparency
-
----
-
-### Tokenization as a First-Class Design Choice
-
-The same algorithm behaves *very differently* depending on how text is tokenized.
-
-This project treats tokenization as **pluggable and experimental**, not a fixed preprocessing step.
-
-Implemented (or planned) tokenizers include:
-
-* Character-level (with / without punctuation)
-* Word-level (boundary-stripped)
-* Word-level with punctuation preserved
-* Sentence-aware tokenization
-
----
+This isn't a chatbot or a neural network. It's a bare-metal exploration into classical probabilistic text generation, built specifically to act as a "learning laboratory." If you've ever wondered how context lengths shift text from absolute gibberish into structured hallucination, or why tokenization controls everything downstream, this codebase makes those mechanics explicitly visible.
 
 ## Features
 
-### Language Modeling
+- **Arbitrary n-gram scaling:** Command the math to use any context depth.
+- **Dynamic Backoff:** If the engine hits an out-of-vocabulary context, it doesn't crash. It drops the oldest context strings incrementally until it finds a matching transition fallback.
+- **Pluggable Tokenization:** Out-of-the-box support for both semantic (word-level) and byte sequence (character-level) training limits to compare how the algorithm behaves when forced to learn spelling natively.
+- **Inspect Mode:** Literally look under the hood. Passing a seed with this flag dumps the top branch generation probabilities so you can physically watch the model choose its path.
 
-* Arbitrary n-gram size (`n ≥ 1`)
-* Sliding window training
-* Frequency-based probability estimation
-* Ranked continuation lists
+## Compiling
 
-### Generation
+Everything is handled by native Standard Library headers. No massive dependencies. You just need CMake (3.20+) and a C++20 compatible compiler.
 
-* Probabilistic sampling
-* Optional seed text
-* Fixed-length output
-* Deterministic mode via RNG seeding
-
-### Robustness
-
-* Backoff to lower-order n-grams
-* Graceful handling of unseen contexts
-* Optional smoothing strategies
-
-### Introspection
-
-* Inspect top-k continuations for any context
-* View raw frequency tables
-* Analyze entropy per context
-
-### Architecture
-
-* Clean separation of concerns:
-
-  * Tokenizer
-  * Vocabulary
-  * NGramModel
-  * Sampler
-  * Interface layer
-* Easily extensible and testable
-
----
-
-## Project Structure
-
+```bash
+cmake -S . -B build
+cmake --build build
 ```
-src/
-├── tokenizers/
-│   ├── tokenizer.hpp
-│   ├── word_tokenizer.cpp
-│   ├── char_tokenizer.cpp
-│
-├── model/
-│   ├── vocabulary.hpp
-│   ├── ngram_model.hpp
-│   ├── ngram_model.cpp
-│
-├── generation/
-│   ├── sampler.hpp
-│   ├── sampler.cpp
-│
-├── main.cpp
-```
-
-Each component is designed to be replaceable without modifying others.
-
----
 
 ## Usage
 
-### Basic Generation
-
-The simplest workflow requires four inputs:
-
-1. Training text
-2. Context window size (`n`)
-3. Output length
-4. Optional seed text
-
-Example (conceptual):
+You can launch the executable bare to trigger the interactive console prompts (super useful for running directly inside CLion), or you can drive the math using explicit script parameters:
 
 ```bash
-./markov \
-  --file pride_and_prejudice.txt \
-  --n 2 \
-  --length 50 \
-  --seed "my dear"
+./markovian --file dataset.txt --n 3 --length 100 --seed "the king" --tokenizer word
 ```
 
----
+**Parameters:**
+* `--file [path]`: (Required) Path to the raw txt corpus to map. 
+* `--n [int]`: The memory window (default 3). 
+* `--length [int]`: Output volume before disconnecting (default 50).
+* `--tokenizer [word|char]`: Strategy flag.
+* `--seed [string]`: Seed the context window proactively (optional). 
+* `--inspect`: Calculate the exact Top-K probabilities for your seed and exit without running a generation loop. Requires `--seed`.
 
-### Example Output
+## Why Build This?
 
-Training on *Pride and Prejudice* with `n = 2`:
+Before moving layers onto giant self-attention transformer matrices, understanding the limits of classical Hidden Markov logic is incredibly useful. 
 
-```
-my dear mr bennet replied that he had not been in the house by the end of next week
-```
-
-With `n = 4`:
-
-```
-my dear mr bennet replied that he had not the pleasure of understanding you
-```
-
-Higher `n` increases coherence—but also brittleness.
+Why does jumping to `n=5` cause the model to completely stop hallucinating new text and just repeat the exact string it read? Why does `n=8` on the character tokenizer magically recreate accurate punctuation spacing without ever actually being taught English grammar rules? If you can dissect those limits using this architecture, you already understand more about modern LLM failure edges than most people pushing them to production.
 
 ---
 
-## Why C++?
-
-This project intentionally avoids Python and large NLP libraries.
-
-Reasons:
-
-* Explicit memory and performance control
-* Clear data structure choices
-* Zero “magic” abstractions
-* Better understanding of algorithmic cost
-* Strong separation between model and representation
-
-Everything is implemented using the C++ standard library.
-
----
-
-## Design Decisions (and Tradeoffs)
-
-### Why not neural networks?
-
-Because the goal is **understanding**, not benchmark scores.
-
-Markov models:
-
-* are fully interpretable
-* fail in understandable ways
-* teach core probabilistic thinking
-
-### Why not regex-heavy tokenizers?
-
-Explicit character handling is:
-
-* faster
-* easier to debug
-* easier to extend
-* less opaque
-
----
-
-## Known Limitations
-
-* No long-range coherence
-* No semantic understanding
-* Vocabulary grows unbounded
-* Performance degrades for very large `n`
-* English-centric tokenization assumptions
-
-These limitations are **intentional** and discussed in the code.
-
----
-
-## Educational Value
-
-This project connects directly to:
-
-* Classical NLP
-* Hidden Markov Models
-* Compression and prediction
-* Information theory
-* Why transformers outperform n-grams
-
-It is designed to be read, modified, and experimented with.
-
----
-
-## Possible Extensions
-
-* Trie-based n-gram storage
-* Kneser–Ney smoothing
-* Perplexity evaluation
-* Sentence boundary modeling
-* POS-tag based tokens
-* Compression experiments
-* Visualization tools
-
----
-
-## License
-
-This project is released under the **MIT License**.
-
-Training texts used for examples are sourced from **Project Gutenberg** and are in the public domain.
-
----
+*Released under the MIT License.*
