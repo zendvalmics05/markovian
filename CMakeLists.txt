@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.31)
+cmake_minimum_required(VERSION 3.20)
 project(markovian)
 
 set(CMAKE_CXX_STANDARD 20)
@@ -11,4 +11,5 @@ add_executable(markovian main.cpp
         model/Model.h
         corpus/WordTokenizer.h
         example.h
+        corpus/TrainSet.h
 )

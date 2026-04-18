@@ -18,16 +18,19 @@ namespace mkv::corpus {
         static constexpr TokenID INVALID = static_cast<TokenID>(-1);
         static constexpr TokenID STARTID = static_cast<TokenID>(0);
         static constexpr TokenID ENDID = static_cast<TokenID>(1);
-        static constexpr TokenID IDENTIFIER = static_cast<TokenID>(2);
-        static constexpr Token START = "<START>";
-        static constexpr Token END = "<END>";
-        static constexpr Token UNK = "<UNK>";
+        static constexpr TokenID UNKID = static_cast<TokenID>(2);
+        static constexpr TokenID IDENTIFIER = static_cast<TokenID>(3);
+        static inline const Token START = "<START>";
+        static inline const Token END = "<END>";
+        static inline const Token UNK = "<UNK>";
+        static inline const Token IDENT_TOKEN = "<IDENTIFIER>";
 
         Vocabulary() {
             id_to_token.reserve(10'000);
             getOrAddID(START);
             getOrAddID(END);
             getOrAddID(UNK);
+            getOrAddID(IDENT_TOKEN);
         }
 
         TokenID getOrAddID(const Token& token) {

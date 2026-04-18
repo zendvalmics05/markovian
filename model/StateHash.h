@@ -4,6 +4,8 @@
 
 #ifndef STATEHASH_H
 #define STATEHASH_H
+#include <vector>
+#include <cstddef>
 #include "../corpus/Tokenizer.h"
 #include "../corpus/Vocabulary.h"
 

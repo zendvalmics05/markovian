@@ -7,6 +7,7 @@
 #include <ranges>
 
 #include "BasicHash.h"
+#include "../corpus/TrainSet.h"
 
 namespace mkv::model {
     using NextTokenCounts = std::unordered_map<TokenID, uint32_t>;
@@ -18,10 +19,14 @@ namespace mkv::model {
             k = order;
         }
 
-        void train(std::vector<corpus::TokenID>& seq) {
+        template<typename T>
+        void train(const corpus::TrainSet<T>& trainSet) {
+            train(trainSet.access());
+        }
+
+        void train(std::vector<corpus::TokenID> seq) {
             if (seq.size() <= k) return;
-            for (size_t i = 0; i < k; ++i)
-                seq.insert(seq.begin(), corpus::Vocabulary::STARTID);
+            seq.insert(seq.begin(), k, corpus::Vocabulary::STARTID);
 
             seq.push_back(corpus::Vocabulary::ENDID);
 

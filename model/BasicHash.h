@@ -5,6 +5,11 @@
 #ifndef BASICHASH_H
 #define BASICHASH_H
 
+#include <cstddef>
+#include <vector>
+#include <functional>
+#include "../corpus/Vocabulary.h"
+
 namespace mkv::model {
     using TokenID = corpus::TokenID;
     using Token = corpus::Token;
