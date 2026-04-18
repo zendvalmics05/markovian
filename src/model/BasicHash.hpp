@@ -1,19 +1,12 @@
-//
-// Created by sagnik on 01-02-2026.
-//
-
 #ifndef BASICHASH_H
 #define BASICHASH_H
 
 #include <cstddef>
 #include <vector>
 #include <functional>
-#include "../corpus/Vocabulary.h"
+#include "Vocabulary.hpp"
 
 namespace mkv::model {
-    using TokenID = corpus::TokenID;
-    using Token = corpus::Token;
-
     using State = std::vector<TokenID>;
 
     class BasicHash {
@@ -27,5 +20,4 @@ namespace mkv::model {
         }
     };
 }
-
 #endif //BASICHASH_H

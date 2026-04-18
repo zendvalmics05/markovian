@@ -1,18 +1,10 @@
-//
-// Created by sagnik on 01-02-2026.
-//
-
 #ifndef STATEHASH_H
 #define STATEHASH_H
 #include <vector>
 #include <cstddef>
-#include "../corpus/Tokenizer.h"
-#include "../corpus/Vocabulary.h"
+#include "Vocabulary.hpp"
 
 namespace mkv::model {
-    using TokenID = corpus::TokenID;
-    using Token = corpus::Token;
-
     using State = std::vector<TokenID>;
 
     class StateHash {
@@ -24,7 +16,5 @@ namespace mkv::model {
 
         [[nodiscard]] virtual size_t hash(const State&) const = 0;
     };
-
 }
-
 #endif //STATEHASH_H

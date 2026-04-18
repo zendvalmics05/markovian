@@ -1,18 +1,17 @@
-//
-// Created by sagnik on 01-02-2026.
-//
-
 #ifndef VOCABULARY_H
 #define VOCABULARY_H
 #include <cstdint>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
-#include "Tokenizer.h"
+#include "../tokenizers/Tokenizer.hpp"
 
-namespace mkv::corpus {
+namespace mkv::model {
     using TokenID = uint32_t;
+    using Token = mkv::tokenizers::Token;
+    
     class Vocabulary {
     public:
         static constexpr TokenID INVALID = static_cast<TokenID>(-1);
@@ -61,5 +60,4 @@ namespace mkv::corpus {
         std::vector<Token> id_to_token;
     };
 }
-
 #endif //VOCABULARY_H
